@@ -6,7 +6,7 @@ const db = new sqlite3.Database(
   process.env.TEST_DATABASE || "./database.sqlite"
 );
 
-timesheetsRouter.params("timesheetId", (req, res, next, timesheetId) => {
+timesheetsRouter.param("timesheetId", (req, res, next, timesheetId) => {
   const sql = `SELECT * FROM Timesheet WHERE Timesheet.id = ${timesheetId}`;
   db.get(sql, (err, timesheet) => {
     if (err) {
@@ -70,32 +70,33 @@ timesheetsRouter.put("/:timesheetId", (req, res, next) => {
     rate = req.body.timesheet.rate,
     date = req.body.timesheet.date,
     employee_id = req.params.employeeId;
+
+  if (hours && rate && date && employee_id) {
+    const sql =
+      "INSERT INTO Timesheet (hours, rate, date, employee_id) " +
+      "VALUES ($hours, $rate, $date, $employee_id)";
+    const values = {
+      $hours: hours,
+      $rate: rate,
+      $date: date,
+      $employee_id: employee_id
+    };
+    db.run(sql, values, (err, timesheet) => {
+      if (err) {
+        next(err);
+      } else {
+        db.get(
+          `SELECT * FROM Timesheet WHERE Timesheet.id = ${req.params.timesheetId}`,
+          (err, timesheet) => {
+            res.status(201).json({ timesheet: timesheet });
+          }
+        );
+      }
+    });
+  } else {
+    res.sendStatus(400);
+  }
 });
-if (hours && rate && date && employee_id) {
-  const sql =
-    "INSERT INTO Timesheet (hours, rate, date, employee_id) " +
-    "VALUES ($hours, $rate, $date, $employee_id)";
-  const values = {
-    $hours: hours,
-    $rate: rate,
-    $date: date,
-    $employee_id: employee_id
-  };
-  db.run(sql, values, (err, timesheet) => {
-    if (err) {
-      next(err);
-    } else {
-      db.get(
-        `SELECT * FROM Timesheet WHERE Timesheet.id = ${req.params.timesheetId}`,
-        (err, timesheet) => {
-          res.status(201).json({ timesheet: timesheet });
-        }
-      );
-    }
-  });
-} else {
-  res.sendStatus(400);
-}
 
 // Delete given timesheet
 timesheetsRouter.delete("/:timesheetId", (req, res, next) => {

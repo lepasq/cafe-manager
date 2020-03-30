@@ -1,10 +1,13 @@
 const express = require("express");
 const employeesRouter = express.Router();
+const timesheetRouter = require("./timesheet.js");
 
 const sqlite3 = require("sqlite3");
 const db = new sqlite3.Database(
   process.env.TEST_DATABASE || "./database.sqlite"
 );
+
+employeesRouter.use("/:employeeId/timesheets", timesheetRouter);
 
 // Get all currently employed employees
 employeesRouter.get("/", (req, res, next) => {
@@ -43,7 +46,7 @@ employeesRouter.get("/:employeeId", (req, res, next) => {
 
 // Add new employee
 employeesRouter.post("/", (req, res, next) => {
-  const emp = req.params.employee;
+  const emp = req.body.employee;
   const name = emp.name,
     position = emp.position,
     wage = emp.wage;
