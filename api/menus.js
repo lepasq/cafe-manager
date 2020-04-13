@@ -22,7 +22,7 @@ menusRouter.param("menuId", (req, res, next, menuId) => {
 
 menusRouter.use("/:menuId/menu-items", menuItemsRouter);
 
-menusRouter.get(":menuId", (req, res, next) => {
+menusRouter.get("/:menuId", (req, res, next) => {
   res.status(200).json({ menu: req.menu });
 });
 
@@ -31,13 +31,13 @@ menusRouter.put("/:menuId", (req, res, next) => {
   if (title) {
     db.run(
       `UPDATE Menu SET title = ${title} WHERE Menu.id = ${req.params.menuId}`,
-      (err, menu) => {
+      (err) => {
         if (err) {
           next(err);
         } else {
           db.get(
             `SELECT * FROM Menu WHERE Menu.id = ${req.params.menuId}`,
-            (err, next) => {
+            (err, menu) => {
               res.status(200).json({ menu: menu });
             }
           );
@@ -45,7 +45,7 @@ menusRouter.put("/:menuId", (req, res, next) => {
       }
     );
   } else {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   }
 });
 
@@ -83,12 +83,12 @@ menusRouter.get("/", (req, res, next) => {
 menusRouter.post("/", (req, res, next) => {
   const title = req.body.menu.title;
   if (title) {
-    db.run(`INSERT INTO Menu(title) VALUES (${title}`, err => {
+    db.run(`INSERT INTO Menu (title) VALUES (${title})`, (err) => {
       if (err) {
         next(err);
       } else {
         db.get(
-          `SELECT * FROM Menu WHERE Menu.id = ${this.lastId}`,
+          `SELECT * FROM Menu WHERE Menu.id = ${this.lastID}`,
           (err, menu) => {
             res.status(201).json({ menu: menu });
           }
@@ -99,3 +99,5 @@ menusRouter.post("/", (req, res, next) => {
     return res.sendStatus(400);
   }
 });
+
+module.exports = menusRouter;

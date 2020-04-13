@@ -22,11 +22,11 @@ timesheetsRouter.param("timesheetId", (req, res, next, timesheetId) => {
 // Get all timesheets
 timesheetsRouter.get("/", (req, res, next) => {
   const sql = `SELECT * FROM Timesheet WHERE Timesheet.employee_id = ${req.params.employeeId}`;
-  db.all(sql, (err, timesheet) => {
+  db.all(sql, (err, timesheets) => {
     if (err) {
       next(err);
     } else {
-      res.status(200).json({ timesheet: timesheet });
+      res.status(200).json({ timesheets: timesheets });
     }
   });
 });
@@ -36,23 +36,23 @@ timesheetsRouter.post("/", (req, res, next) => {
   const hours = req.body.timesheet.hours,
     rate = req.body.timesheet.rate,
     date = req.body.timesheet.date,
-    employee_id = req.params.employeeId;
-  if (rate && date && employee_id) {
+    employeeId = req.params.employeeId;
+  if (rate && date && hours) {
     const sql =
-      "INSERT INTO Timesheet (hours, rate, date, employee_id) " +
-      "VALUES ($hours, $rate, $date, $employee_id)";
+      "INSERT INTO Timesheet (hours, rate, date, employee_id)" +
+      "VALUES ($hours, $rate, $date, $employeeId)";
     const values = {
       $hours: hours,
       $rate: rate,
       $date: date,
-      $employee_id: employee_id
+      $employeeId: employeeId
     };
-    db.run(sql, values, err => {
+    db.run(sql, values, function(err) {
       if (err) {
         next(err);
       } else {
-        db.all(
-          `SELECT * FROM Timesheet WHERE Timesheet.employee_id = ${this.lastID}`,
+        db.get(
+          `SELECT * FROM Timesheet WHERE Timesheet.id = ${this.lastID}`,
           (err, timesheet) => {
             res.status(201).json({ timesheet: timesheet });
           }
@@ -69,26 +69,27 @@ timesheetsRouter.put("/:timesheetId", (req, res, next) => {
   const hours = req.body.timesheet.hours,
     rate = req.body.timesheet.rate,
     date = req.body.timesheet.date,
-    employee_id = req.params.employeeId;
+    employeeId = req.params.employeeId;
 
-  if (hours && rate && date && employee_id) {
+  if (hours && rate && date) {
     const sql =
-      "INSERT INTO Timesheet (hours, rate, date, employee_id) " +
-      "VALUES ($hours, $rate, $date, $employee_id)";
-    const values = {
-      $hours: hours,
-      $rate: rate,
-      $date: date,
-      $employee_id: employee_id
-    };
-    db.run(sql, values, (err, timesheet) => {
+    "UPDATE Timesheet SET hours = $hours, rate = $rate, " +
+    "date = $date, employee_id = $employeeId WHERE Timesheet.id = $timesheetId";
+  const values = {
+    $hours: hours,
+    $rate: rate,
+    $date: date,
+    $employeeId: employeeId,
+    $timesheetId: req.params.timesheetId
+  };
+    db.run(sql, values, (err) => {
       if (err) {
         next(err);
       } else {
         db.get(
           `SELECT * FROM Timesheet WHERE Timesheet.id = ${req.params.timesheetId}`,
           (err, timesheet) => {
-            res.status(201).json({ timesheet: timesheet });
+            res.status(200).json({ timesheet: timesheet });
           }
         );
       }

@@ -7,21 +7,6 @@ const db = new sqlite3.Database(
   process.env.TEST_DATABASE || "./database.sqlite"
 );
 
-employeesRouter.use("/:employeeId/timesheets", timesheetRouter);
-
-// Get all currently employed employees
-employeesRouter.get("/", (req, res, next) => {
-  db.all(
-    "SELECT * FROM Employee WHERE Employee.is_current_employee=1",
-    (err, employees) => {
-      if (err) {
-        next(err);
-      } else {
-        res.status(200).json({ employees: employees });
-      }
-    }
-  );
-});
 
 // If the request contains the parameter employeeId, this function is used before passing it to the other middleware functions
 employeesRouter.param("employeeId", (req, res, next, employeeId) => {
@@ -39,44 +24,62 @@ employeesRouter.param("employeeId", (req, res, next, employeeId) => {
   });
 });
 
+
+employeesRouter.use("/:employeeId/timesheets", timesheetRouter);
+
+// Get all currently employed employees
+employeesRouter.get("/", (req, res, next) => {
+  db.all(
+    "SELECT * FROM Employee WHERE Employee.is_current_employee=1",
+    (err, employees) => {
+      if (err) {
+        next(err);
+      } else {
+        res.status(200).json({ employees: employees });
+      }
+    }
+  );
+});
+
+
+
 // Get Employee with given empoyeeId
 employeesRouter.get("/:employeeId", (req, res, next) => {
-  res.status(200).json({ employee: req.empoyee });
+  res.status(200).json({ employee: req.employee });
 });
 
 // Add new employee
 employeesRouter.post("/", (req, res, next) => {
-  const emp = req.body.employee;
-  const name = emp.name,
-    position = emp.position,
-    wage = emp.wage;
-  isCurrentEmployee = emp.isCurrentEmployee;
-  if (name && position && wage) {
-    const sql =
-      "INSERT INTO Employee(name, position, wage, is_current_employee)" +
-      "VALUES ($name, $position, $wage, $isCurrentEmployee)";
-    const values = {
-      $name: name,
-      $position: position,
-      $wage: wage,
-      isCurrentEmployee: isCurrentEmployee
-    };
-    db.run(sql, values, err => {
-      if (err) {
-        next(err);
-      } else {
-        db.get(
-          `SELECT * FROM Employee WHERE Employee.id = ${this.lastID}`,
-          (err, employee) => {
-            res.status(201).json({ employee: employee });
-          }
-        );
-      }
-    });
-    return res.status(201);
-  } else {
+  const name = req.body.employee.name,
+    position = req.body.employee.position,
+    wage = req.body.employee.wage,
+    isCurrentEmployee = req.body.employee.isCurrentEmployee === 0 ? 0 : 1;
+  if (!name || !position || !wage) {
     return res.sendStatus(400);
   }
+
+  const sql =
+    "INSERT INTO Employee (name, position, wage, is_current_employee)" +
+    "VALUES ($name, $position, $wage, $isCurrentEmployee)";
+  const values = {
+    $name: name,
+    $position: position,
+    $wage: wage,
+    $isCurrentEmployee: isCurrentEmployee
+  };
+
+  db.run(sql, values, function(error) {
+    if (error) {
+      next(error);
+    } else {
+      db.get(
+        `SELECT * FROM Employee WHERE Employee.id = ${this.lastID}`,
+        (error, employee) => {
+          res.status(201).json({ employee: employee });
+        }
+      );
+    }
+  });
 });
 
 // Update employee
@@ -84,7 +87,7 @@ employeesRouter.put("/:employeeId", (req, res, next) => {
   const name = req.body.employee.name,
     position = req.body.employee.position,
     wage = req.body.employee.wage,
-    isCurrentEmployee = req.body.employee.isCurrentEmployee;
+    isCurrentEmployee = req.body.employee.isCurrentEmployee === 0 ? 0 : 1;
 
   if (name && position && wage) {
     const sql =
